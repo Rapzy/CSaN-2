@@ -11,46 +11,67 @@ using namespace std;
 
 int main()
 {
-	int rc, i = 1;
-	WSADATA wsd;
-	WSAStartup(MAKEWORD(2, 2), &wsd);
-	FILE *f;
+	int iResult = 0;
+
+	WSADATA wsaData;
+	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != NO_ERROR) {
+		printf("WSAStartup failed with error %d\n", iResult);
+		return 1;
+	}
 
 	SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
-
+	if (s == INVALID_SOCKET) {
+		printf("socket failed with error %d\n", WSAGetLastError());
+		return 1;
+	}
 	struct sockaddr_in serveraddr, clientaddr;
-	memset(&serveraddr, 0, sizeof(serveraddr));
-	memset(&clientaddr, 0, sizeof(clientaddr));
+	int clientaddr_size = sizeof(clientaddr);
 
 	serveraddr.sin_family = AF_INET;
 	serveraddr.sin_port = htons(27015);
 	serveraddr.sin_addr.s_addr = INADDR_ANY;
 
-	rc = bind(s, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-	if (rc < 0) printf("error");
-	listen(s, 5);
-	int clientsize = sizeof(clientaddr);
+	iResult = bind(s, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+	if (iResult != 0) {
+		printf("bind failed with error %d\n", WSAGetLastError());
+		return 1;
+	}
+
+	FILE *f;
 	f = fopen("../../../recieve.txt", "ab");
+	if (f == NULL) {
+		puts("Cannot open file.");
+		return 1;
+	}
+
+	int part = 1;
+	puts("Receiving datagrams...");
 	while (true)
 	{
-		puts("Waiting");
 		char buf[100];
-		int r = recvfrom(s, buf, sizeof(buf), 0, (sockaddr *)&clientaddr, &clientsize);
-		if (r > 0)
+		iResult = recvfrom(s, buf, sizeof(buf), 0, (sockaddr *)&clientaddr, &clientaddr_size);
+		if (iResult == SOCKET_ERROR) {
+			printf("recvfrom failed with error %d\n", WSAGetLastError());
+		}
+		else
 		{
 			if (strcmp(buf,"EOF")) {
-				cout << "receive bytes: " << r << ", part: " << i << endl;
-				printf("%s\n", buf);
-				i++;
+				printf( "Received %d bytes.\n", iResult);
+				part++;
 			}
 			else {
+				puts("File received.\nExiting.");
 				break;
 			}
 		}
 	}
 	fclose(f);
-	_getch();
-	closesocket(s);
+	iResult = closesocket(s);
+	if (iResult == SOCKET_ERROR) {
+		printf("closesocket failed with error %d\n", WSAGetLastError());
+		return 1;
+	}
 	WSACleanup();
 	return 0;
 }
