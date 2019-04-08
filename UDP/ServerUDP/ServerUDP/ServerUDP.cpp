@@ -1,7 +1,4 @@
-﻿#include <conio.h>
-#include <iostream>
-#include <io.h>
-#include <winsock2.h>
+﻿#include <winsock2.h>
 #include <Ws2tcpip.h>
 #include <stdio.h>
 
@@ -59,6 +56,7 @@ int main()
 			if (strcmp(buf,"EOF")) {
 				printf( "Received %d bytes.\n", iResult);
 				part++;
+				fwrite(buf, 1, iResult, f);
 			}
 			else {
 				puts("File received.\nExiting.");
